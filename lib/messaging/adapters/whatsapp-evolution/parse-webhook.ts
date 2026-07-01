@@ -39,7 +39,13 @@ function extractMessageContent(
 function parseMessageUpsert(payload: Payload): NormalizedEvent[] {
   const data = payload.data ?? {};
   const key = data.key as Record<string, unknown> | undefined;
-  const remoteJid = typeof key?.remoteJid === "string" ? key.remoteJid : null;
+  const rawRemoteJid = typeof key?.remoteJid === "string" ? key.remoteJid : null;
+  const senderPn = typeof key?.senderPn === "string" ? key.senderPn : null;
+  // O WhatsApp pode entregar o remetente como "@lid" (identificador de
+  // privacidade) em vez do telefone. Responder para o @lid falha (o Evolution
+  // retorna exists:false), então preferimos o senderPn (telefone real) sempre
+  // que o remoteJid vier como @lid.
+  const remoteJid = rawRemoteJid?.endsWith("@lid") && senderPn ? senderPn : rawRemoteJid;
   const externalMessageId = typeof key?.id === "string" ? key.id : null;
   const fromMe = key?.fromMe === true;
   if (!remoteJid || !externalMessageId) return [];
