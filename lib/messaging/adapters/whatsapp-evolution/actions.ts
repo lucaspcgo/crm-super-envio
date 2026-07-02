@@ -2,6 +2,7 @@
 
 import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
@@ -20,10 +21,29 @@ import { getJson, postJson } from "./client";
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
-function appUrl(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL;
-  if (!url) throw new Error("NEXT_PUBLIC_APP_URL não configurada — pra webhook funcionar.");
-  return url.startsWith("http") ? url : `https://${url}`;
+function isLocalHost(u: string): boolean {
+  return /(^|\/\/|@)(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/.test(u);
+}
+
+// URL pública usada para registrar o webhook no Evolution. NUNCA pode virar
+// localhost: se isso for gravado, o Evolution (na nuvem) não alcança o app e o
+// canal para de receber mensagens. Por isso ignoramos valores localhost da env
+// e caímos no host real da requisição (o domínio de onde a ação foi chamada).
+async function appUrl(): Promise<string> {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL;
+  if (envUrl && !isLocalHost(envUrl)) {
+    return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  }
+  // Fallback: host real da requisição (atrás do proxy do EasyPanel/Vercel).
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  if (host && !isLocalHost(host)) {
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`;
+  }
+  throw new Error(
+    "Não foi possível determinar a URL pública do app para o webhook (evitando apontar para localhost). Configure NEXT_PUBLIC_APP_URL com o domínio de produção, ou faça esta ação pelo domínio publicado.",
+  );
 }
 
 async function fetchInstanceState(
@@ -93,7 +113,7 @@ export async function connectEvolutionChannelAction(
   }
 
   const webhookSecret = crypto.randomBytes(32).toString("hex");
-  const webhookUrl = `${appUrl()}/api/webhooks/messaging/whatsapp_evolution`;
+  const webhookUrl = `${await appUrl()}/api/webhooks/messaging/whatsapp_evolution`;
   try {
     await setWebhook(baseUrl, apiKey, instanceName, webhookUrl, webhookSecret);
   } catch (err) {
@@ -174,7 +194,7 @@ export async function reverifyEvolutionChannelAction(
       cfg.baseUrl,
       cfg.apiKey,
       cfg.instanceName,
-      `${appUrl()}/api/webhooks/messaging/whatsapp_evolution`,
+      `${await appUrl()}/api/webhooks/messaging/whatsapp_evolution`,
       newSecret,
     );
   } catch (err) {
