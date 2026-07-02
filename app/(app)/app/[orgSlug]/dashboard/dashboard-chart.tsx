@@ -7,10 +7,10 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import type { ChartPoint } from "@/lib/mock/dashboard";
+import type { ChartPoint } from "@/lib/dashboard/queries";
 
 const chartConfig = {
-  valor: { label: "Valor", color: "var(--color-chart-1)" },
+  valor: { label: "Negócios criados", color: "var(--color-chart-1)" },
 } satisfies ChartConfig;
 
 export function DashboardChart({ data }: { data: ChartPoint[] }) {
@@ -50,7 +50,8 @@ export function DashboardChart({ data }: { data: ChartPoint[] }) {
           axisLine={false}
           stroke="currentColor"
           opacity={0.5}
-          width={48}
+          width={32}
+          allowDecimals={false}
         />
         <ChartTooltip
           cursor={{

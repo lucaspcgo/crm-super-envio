@@ -154,7 +154,7 @@ lib/
   agent/                          # Agente IA (RAG + tool use + handoff) — Sub-D
   automations/                    # Automações event-based (Sub-H)
   jobs/                           # Background jobs (recoveries via instrumentation.ts)
-  mock/                           # Seed data do dashboard (substituir por queries reais)
+  dashboard/                      # Queries reais dos KPIs + gráfico do dashboard
 components/
   ui/                             # shadcn primitives
   app/                            # Shell (Sidebar, Header, OrgSwitcher...)
@@ -196,7 +196,6 @@ Pra **forma exata** de Server Action, Page com guard, Realtime, Migration org-sc
 - `lib/orgs/CLAUDE.md`, `lib/profile/CLAUDE.md`
 - `lib/tags/CLAUDE.md` — catálogo universal de tags com escopo + propagação (segmentação CRM + estado de conversa)
 - `lib/invitations/CLAUDE.md`, `lib/members/CLAUDE.md`
-- `lib/mock/CLAUDE.md` — seed data do dashboard (não é CRUD real)
 
 **UI:**
 - `components/CLAUDE.md` — onde criar componentes + padrões base-ui + estilo visual
