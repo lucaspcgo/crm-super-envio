@@ -98,6 +98,18 @@ export async function sendViaChannel(
     return { ok: true, externalId: res.externalId };
   } catch (err) {
     logError("broadcasts.sendViaChannel", err);
-    return { ok: false, error: "Falha no envio pela instância. Verifique se ela está conectada." };
+    // O adapter já traduz os erros do Evolution (mapEvolutionError) — repassa a
+    // causa real em vez de uma mensagem genérica que culpa a instância.
+    const msg = err instanceof Error ? err.message : "";
+    let friendly: string;
+    if (!msg) {
+      friendly = "Falha no envio pela instância.";
+    } else if (/bad request|payload inválido/i.test(msg)) {
+      // 400 genérico no envio quase sempre = número inválido / fora do WhatsApp.
+      friendly = "Número inválido ou não está no WhatsApp.";
+    } else {
+      friendly = msg;
+    }
+    return { ok: false, error: friendly };
   }
 }
