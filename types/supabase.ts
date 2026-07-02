@@ -499,6 +499,160 @@ export type Database = {
           },
         ]
       }
+      broadcast_targets: {
+        Row: {
+          broadcast_id: string
+          channel_id: string | null
+          contact_id: string | null
+          created_at: string
+          error: string | null
+          external_id: string | null
+          id: string
+          name: string | null
+          organization_id: string
+          phone: string
+          sending_started_at: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          broadcast_id: string
+          channel_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          name?: string | null
+          organization_id: string
+          phone: string
+          sending_started_at?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          broadcast_id?: string
+          channel_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          error?: string | null
+          external_id?: string | null
+          id?: string
+          name?: string | null
+          organization_id?: string
+          phone?: string
+          sending_started_at?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_targets_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_targets_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_targets_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_targets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      broadcasts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          daily_limit_per_instance: number
+          delay_max_seconds: number
+          delay_min_seconds: number
+          failed_count: number
+          finished_at: string | null
+          id: string
+          instance_channel_ids: string[]
+          instance_mode: string
+          message_body: string
+          message_type: string
+          name: string
+          next_send_at: string | null
+          organization_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          total_targets: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          daily_limit_per_instance?: number
+          delay_max_seconds?: number
+          delay_min_seconds?: number
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          instance_channel_ids?: string[]
+          instance_mode?: string
+          message_body: string
+          message_type?: string
+          name: string
+          next_send_at?: string | null
+          organization_id: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          total_targets?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          daily_limit_per_instance?: number
+          delay_max_seconds?: number
+          delay_min_seconds?: number
+          failed_count?: number
+          finished_at?: string | null
+          id?: string
+          instance_channel_ids?: string[]
+          instance_mode?: string
+          message_body?: string
+          message_type?: string
+          name?: string
+          next_send_at?: string | null
+          organization_id?: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          total_targets?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcasts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           agent_id: string | null
