@@ -1,7 +1,16 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { AlertTriangleIcon, CheckIcon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  CheckIcon,
+  ImageIcon,
+  ShuffleIcon,
+  SparklesIcon,
+  TypeIcon,
+  UploadIcon,
+  UsersIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -10,6 +19,7 @@ import { TextField } from "@/components/forms/form-field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createBroadcastAction } from "@/lib/broadcasts/actions";
 import { type CreateBroadcastInput, createBroadcastSchema } from "@/lib/broadcasts/schemas";
@@ -62,7 +72,8 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
       orgSlug,
       name: "",
       messageBody: "",
-      contactMode: "all",
+      randomEmojiSuffix: false,
+      contactMode: "manual",
       tagIds: [],
       manualNumbers: "",
       instanceMode: "specific",
@@ -79,7 +90,10 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
   const tagIds = form.watch("tagIds");
   const instanceMode = form.watch("instanceMode");
   const channelIds = form.watch("channelIds");
+  const randomEmojiSuffix = form.watch("randomEmojiSuffix");
   const errors = form.formState.errors;
+
+  const isAgenda = contactMode === "all" || contactMode === "tag";
 
   function toggleTag(id: string) {
     const next = tagIds.includes(id) ? tagIds.filter((t) => t !== id) : [...tagIds, id];
@@ -125,14 +139,23 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
             <CardTitle className="label-mono text-[10px]">/ mensagem</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <div className="flex gap-2">
-              <Pill active>Texto</Pill>
-              <Pill active={false} disabled>
-                Mídia (em breve)
-              </Pill>
-              <Pill active={false} disabled>
-                Interativa (em breve)
-              </Pill>
+            <div className="space-y-1.5">
+              <span className="block font-medium text-sm">Tipo de mensagem</span>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary/10 px-3 py-2.5 font-medium text-primary text-sm">
+                  <TypeIcon className="h-4 w-4" />
+                  Texto
+                </div>
+                <div className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50">
+                  <ImageIcon className="h-4 w-4" />
+                  Mídia
+                </div>
+                <div className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50">
+                  <SparklesIcon className="h-4 w-4" />
+                  Interativa
+                </div>
+              </div>
+              <p className="text-muted-foreground text-xs">Mídia e Interativa em breve.</p>
             </div>
 
             <TextField
@@ -161,6 +184,22 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                 <p className="text-destructive text-xs">{errors.messageBody.message}</p>
               )}
             </div>
+
+            <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2.5">
+              <div className="flex items-start gap-2.5">
+                <ShuffleIcon className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                <div className="space-y-0.5">
+                  <span className="block font-medium text-sm">Sufixo de Emoji Aleatório</span>
+                  <p className="text-muted-foreground text-xs">
+                    Adiciona um emoji diferente no fim de cada mensagem (proteção anti-ban).
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={randomEmojiSuffix}
+                onCheckedChange={(v) => form.setValue("randomEmojiSuffix", v)}
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -170,91 +209,121 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
             <CardTitle className="label-mono text-[10px]">/ contatos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <div className="flex flex-wrap gap-2">
-              <Pill
-                active={contactMode === "all"}
-                onClick={() => form.setValue("contactMode", "all", { shouldValidate: true })}
-              >
-                Todos os contatos
-              </Pill>
-              <Pill
-                active={contactMode === "tag"}
-                onClick={() => form.setValue("contactMode", "tag", { shouldValidate: true })}
-              >
-                Por tag
-              </Pill>
-              <Pill
-                active={contactMode === "manual"}
-                onClick={() => form.setValue("contactMode", "manual", { shouldValidate: true })}
-              >
-                Números avulsos
-              </Pill>
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-sm">Lista de contatos</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    form.setValue("contactMode", isAgenda ? "manual" : "all", {
+                      shouldValidate: true,
+                    })
+                  }
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-sm transition-colors",
+                    isAgenda
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <UsersIcon className="h-3.5 w-3.5" />
+                  Agenda
+                </button>
+                <button
+                  type="button"
+                  disabled
+                  title="Em breve"
+                  className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-muted-foreground text-sm opacity-50"
+                >
+                  <UploadIcon className="h-3.5 w-3.5" />
+                  Arquivo
+                </button>
+              </div>
             </div>
 
-            {contactMode === "all" && (
-              <p className="text-muted-foreground text-sm">
-                Vai enviar pra todos os contatos que têm telefone cadastrado.
-              </p>
-            )}
-
-            {contactMode === "tag" &&
-              (tags.length === 0 ? (
-                <p className="text-muted-foreground text-sm">
-                  Você ainda não tem tags. Crie tags nos contatos pra segmentar.
-                </p>
-              ) : (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {tags.map((t) => {
-                      const selected = tagIds.includes(t.id);
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => toggleTag(t.id)}
-                          className={cn(
-                            "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                            selected
-                              ? "border-primary bg-primary/10"
-                              : "border-border/60 bg-card/40",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "grid size-4 place-items-center rounded-[4px] border",
-                              selected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-input",
-                            )}
-                          >
-                            {selected && <CheckIcon className="size-3" />}
-                          </span>
-                          {t.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {errors.tagIds && (
-                    <p className="text-destructive text-xs">{errors.tagIds.message}</p>
-                  )}
-                </>
-              ))}
-
-            {contactMode === "manual" && (
+            {!isAgenda ? (
               <div className="space-y-1.5">
                 <Textarea
-                  rows={4}
-                  placeholder={"Um número por linha:\n5562999999999\n5511988887777"}
+                  rows={5}
+                  placeholder={
+                    "Digite os números (um por linha ou separados por vírgula), ex:\n5511999999999\n5521988888888"
+                  }
                   {...form.register("manualNumbers")}
                 />
                 <p className="text-muted-foreground text-xs">
-                  Um número por linha (ou separados por vírgula). Use DDI + DDD, ex:{" "}
-                  <code className="font-mono">5562999999999</code>.
+                  Use DDI + DDD (ex: <code className="font-mono">5562999999999</code>). Ou clique em{" "}
+                  <strong>Agenda</strong> pra escolher dos seus contatos.
                 </p>
                 {errors.manualNumbers && (
                   <p className="text-destructive text-xs">{errors.manualNumbers.message}</p>
                 )}
               </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Pill
+                    active={contactMode === "all"}
+                    onClick={() => form.setValue("contactMode", "all", { shouldValidate: true })}
+                  >
+                    Todos os contatos
+                  </Pill>
+                  <Pill
+                    active={contactMode === "tag"}
+                    onClick={() => form.setValue("contactMode", "tag", { shouldValidate: true })}
+                  >
+                    Por tag
+                  </Pill>
+                </div>
+
+                {contactMode === "all" && (
+                  <p className="text-muted-foreground text-sm">
+                    Vai enviar pra todos os contatos que têm telefone cadastrado.
+                  </p>
+                )}
+
+                {contactMode === "tag" &&
+                  (tags.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      Você ainda não tem tags. Crie tags nos contatos pra segmentar.
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        {tags.map((t) => {
+                          const selected = tagIds.includes(t.id);
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => toggleTag(t.id)}
+                              className={cn(
+                                "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                                selected
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border/60 bg-card/40",
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "grid size-4 place-items-center rounded-[4px] border",
+                                  selected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-input",
+                                )}
+                              >
+                                {selected && <CheckIcon className="size-3" />}
+                              </span>
+                              {t.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.tagIds && (
+                        <p className="text-destructive text-xs">{errors.tagIds.message}</p>
+                      )}
+                    </>
+                  ))}
+              </>
             )}
           </CardContent>
         </Card>

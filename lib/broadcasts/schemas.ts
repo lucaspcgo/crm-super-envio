@@ -12,6 +12,7 @@ export const createBroadcastSchema = z
     contactMode: z.enum(["all", "tag", "manual"]),
     tagIds: z.array(z.string().uuid()),
     manualNumbers: z.string().max(20000),
+    randomEmojiSuffix: z.boolean(),
     instanceMode: z.enum(["specific", "rotate"]),
     channelIds: z.array(z.string().uuid()).min(1, "Escolha ao menos uma instância"),
     delayMin: z.number().int().min(1, "Mínimo 1 segundo").max(3600),

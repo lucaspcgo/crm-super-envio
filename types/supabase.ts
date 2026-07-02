@@ -595,6 +595,7 @@ export type Database = {
           next_send_at: string | null
           organization_id: string
           pause_minutes: number
+          random_emoji_suffix: boolean
           sent_count: number
           started_at: string | null
           status: string
@@ -619,6 +620,7 @@ export type Database = {
           next_send_at?: string | null
           organization_id: string
           pause_minutes?: number
+          random_emoji_suffix?: boolean
           sent_count?: number
           started_at?: string | null
           status?: string
@@ -643,6 +645,7 @@ export type Database = {
           next_send_at?: string | null
           organization_id?: string
           pause_minutes?: number
+          random_emoji_suffix?: boolean
           sent_count?: number
           started_at?: string | null
           status?: string

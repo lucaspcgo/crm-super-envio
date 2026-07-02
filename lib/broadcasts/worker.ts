@@ -2,7 +2,7 @@ import "server-only";
 import { logError } from "@/lib/logger";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Broadcast } from "./queries";
-import { interpolateBody, pickChannelForBroadcast, sendViaChannel } from "./send";
+import { interpolateBody, pickChannelForBroadcast, sendViaChannel, withRandomEmoji } from "./send";
 
 type Admin = ReturnType<typeof createServiceClient>;
 
@@ -82,8 +82,9 @@ async function processOneBroadcast(admin: Admin, broadcast: Broadcast): Promise<
     return;
   }
 
-  // Envia.
-  const body = interpolateBody(broadcast.message_body, { name: target.name, phone: target.phone });
+  // Envia (interpola variáveis + emoji aleatório opcional).
+  let body = interpolateBody(broadcast.message_body, { name: target.name, phone: target.phone });
+  if (broadcast.random_emoji_suffix) body = withRandomEmoji(body);
   const result = await sendViaChannel(channel.config, target.phone, body);
 
   if (result.ok) {

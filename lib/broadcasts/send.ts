@@ -13,6 +13,14 @@ export function normalizePhone(raw: string): string {
   return raw.replace(/\D/g, "");
 }
 
+const SUFFIX_EMOJIS = ["✅", "😊", "🙂", "👍", "✨", "🔥", "🚀", "💬", "📌", "🎯", "👋", "💡"];
+
+/** Acrescenta um emoji aleatório no fim (anti-ban: varia cada mensagem). */
+export function withRandomEmoji(body: string): string {
+  const emoji = SUFFIX_EMOJIS[Math.floor(Math.random() * SUFFIX_EMOJIS.length)];
+  return `${body} ${emoji}`;
+}
+
 /** Interpola {{nome}}, {{primeiro_nome}}, {{telefone}} no corpo da mensagem. */
 export function interpolateBody(
   body: string,

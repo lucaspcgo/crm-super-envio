@@ -99,6 +99,7 @@ export async function createBroadcastAction(
       daily_limit_per_instance: parsed.data.dailyLimit,
       pause_minutes: parsed.data.pauseMinutes,
       batch_size: parsed.data.batchSize,
+      random_emoji_suffix: parsed.data.randomEmojiSuffix,
       status: "running",
       total_targets: targets.length,
       started_at: nowIso,

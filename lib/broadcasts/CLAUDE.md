@@ -38,7 +38,8 @@ no projeto). O worker usa **service role** (bypassa RLS) porque roda fora de req
    **direto pro número** (não cria conversa na inbox), grava o resultado e agenda
    o próximo com delay aleatório entre `delay_min/max`. Anti-ban por lote: a cada
    `batch_size` mensagens enviadas, a próxima é agendada só depois de `pause_minutes`
-   (0 = sem pausa por lote).
+   (0 = sem pausa por lote). Se `random_emoji_suffix`, acrescenta um emoji aleatório
+   no fim de cada mensagem (`withRandomEmoji`).
 3. Sem mais `queued` → `status='done'`. Todas as instâncias no limite → adia 1h.
 
 ## Fora de escopo (Fases 2-3)
