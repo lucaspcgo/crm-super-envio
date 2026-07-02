@@ -15,7 +15,7 @@ import {
   VideoIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { type ChangeEvent, useRef, useState, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { TextField } from "@/components/forms/form-field";
@@ -154,6 +154,46 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
   function setInstanceMode(mode: "specific" | "rotate") {
     form.setValue("instanceMode", mode);
     form.setValue("channelIds", [], { shouldValidate: true });
+  }
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileImport(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (e.target) e.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result ?? "");
+      // Captura sequências de telefone (permite +, espaços, (), -, .) sem cruzar
+      // vírgulas/quebras de linha (separadores de colunas/linhas do CSV).
+      const matches = text.match(/\+?\d[\d\s().-]{6,}\d/g) ?? [];
+      const fromFile: string[] = [];
+      const seen = new Set<string>();
+      for (const m of matches) {
+        const digits = m.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 15 || seen.has(digits)) continue;
+        seen.add(digits);
+        fromFile.push(digits);
+      }
+      if (fromFile.length === 0) {
+        toast.error("Nenhum número válido encontrado no arquivo (use DDI + DDD).");
+        return;
+      }
+      // Junta com o que já está na caixa, sem duplicar.
+      const existing = form
+        .getValues("manualNumbers")
+        .split(/[\s,;]+/)
+        .map((s) => s.replace(/\D/g, ""))
+        .filter(Boolean);
+      const merged = [...new Set([...existing, ...fromFile])];
+      form.setValue("contactMode", "manual", { shouldValidate: true });
+      form.setValue("manualNumbers", merged.join("\n"), { shouldValidate: true });
+      toast.success(`${fromFile.length} número(s) importado(s) do arquivo.`);
+    };
+    reader.onerror = () => toast.error("Não foi possível ler o arquivo.");
+    reader.readAsText(file);
   }
 
   function onSubmit(values: CreateBroadcastInput) {
@@ -339,13 +379,20 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                 </button>
                 <button
                   type="button"
-                  disabled
-                  title="Em breve"
-                  className="flex cursor-not-allowed items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-muted-foreground text-sm opacity-50"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Importar CSV/TXT com a lista de números"
+                  className="flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                 >
                   <UploadIcon className="h-3.5 w-3.5" />
                   Arquivo
                 </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.txt,text/csv,text/plain"
+                  className="hidden"
+                  onChange={handleFileImport}
+                />
               </div>
             </div>
 
@@ -359,8 +406,9 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                   {...form.register("manualNumbers")}
                 />
                 <p className="text-muted-foreground text-xs">
-                  Use DDI + DDD (ex: <code className="font-mono">5562999999999</code>). Ou clique em{" "}
-                  <strong>Agenda</strong> pra escolher dos seus contatos.
+                  Use DDI + DDD (ex: <code className="font-mono">5562999999999</code>). Clique em{" "}
+                  <strong>Arquivo</strong> pra importar de um CSV/TXT, ou <strong>Agenda</strong>{" "}
+                  pra usar seus contatos.
                 </p>
                 {errors.manualNumbers && (
                   <p className="text-destructive text-xs">{errors.manualNumbers.message}</p>
