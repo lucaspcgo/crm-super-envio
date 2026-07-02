@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireOrgMember } from "@/lib/auth/guards";
 import { getOrgInvitations, getOrgMembers } from "@/lib/orgs/queries";
+import { CreateMemberDialog } from "./create-member-dialog";
 import { InvitationsList } from "./invitations-list";
-import { InviteMemberDialog } from "./invite-member-dialog";
 import { MembersList } from "./members-list";
 
 type Props = { params: Promise<{ orgSlug: string }> };
@@ -28,7 +28,7 @@ export default async function MembersPage({ params }: Props) {
           <h1 className="font-semibold text-3xl tracking-tight">Membros</h1>
           <p className="text-muted-foreground text-sm">Quem tem acesso a este workspace.</p>
         </div>
-        {canManage && <InviteMemberDialog orgSlug={orgSlug} />}
+        {canManage && <CreateMemberDialog orgSlug={orgSlug} />}
       </div>
 
       {/* Members card */}

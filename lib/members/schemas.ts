@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+export const createMemberAccountSchema = z.object({
+  orgSlug: z.string(),
+  fullName: z.string().min(2, "Digite o nome da pessoa").max(120, "Nome muito longo"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(10, "A senha precisa ter no mínimo 10 caracteres"),
+  role: z.enum(["admin", "member"]),
+});
+
+export type CreateMemberAccountInput = z.infer<typeof createMemberAccountSchema>;
+
 export const changeRoleSchema = z.object({
   orgSlug: z.string(),
   membershipId: z.string().uuid(),
