@@ -97,6 +97,8 @@ export async function createBroadcastAction(
       delay_min_seconds: parsed.data.delayMin,
       delay_max_seconds: parsed.data.delayMax,
       daily_limit_per_instance: parsed.data.dailyLimit,
+      pause_minutes: parsed.data.pauseMinutes,
+      batch_size: parsed.data.batchSize,
       status: "running",
       total_targets: targets.length,
       started_at: nowIso,

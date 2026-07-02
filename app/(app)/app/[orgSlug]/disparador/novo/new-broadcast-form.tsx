@@ -69,6 +69,8 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
       channelIds: [],
       delayMin: 8,
       delayMax: 25,
+      pauseMinutes: 5,
+      batchSize: 50,
       dailyLimit: 800,
     },
   });
@@ -331,6 +333,28 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <label htmlFor="pauseMinutes" className="font-medium text-sm">
+                      Pausa (min)
+                    </label>
+                    <Input
+                      id="pauseMinutes"
+                      type="number"
+                      min={0}
+                      {...form.register("pauseMinutes", { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label htmlFor="batchSize" className="font-medium text-sm">
+                      Tamanho do lote
+                    </label>
+                    <Input
+                      id="batchSize"
+                      type="number"
+                      min={1}
+                      {...form.register("batchSize", { valueAsNumber: true })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <label htmlFor="dailyLimit" className="font-medium text-sm">
                       Limite/dia por nº
                     </label>
@@ -342,10 +366,21 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                     />
                   </div>
                 </div>
-                {(errors.delayMin || errors.delayMax || errors.dailyLimit) && (
+                <p className="text-muted-foreground text-xs">
+                  A cada <strong>{form.watch("batchSize") || 0}</strong> mensagens, o disparo pausa
+                  por <strong>{form.watch("pauseMinutes") || 0}</strong> min (coloque 0 na pausa pra
+                  desligar).
+                </p>
+                {(errors.delayMin ||
+                  errors.delayMax ||
+                  errors.pauseMinutes ||
+                  errors.batchSize ||
+                  errors.dailyLimit) && (
                   <p className="text-destructive text-xs">
                     {errors.delayMin?.message ??
                       errors.delayMax?.message ??
+                      errors.pauseMinutes?.message ??
+                      errors.batchSize?.message ??
                       errors.dailyLimit?.message}
                   </p>
                 )}

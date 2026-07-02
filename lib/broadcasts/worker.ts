@@ -103,13 +103,20 @@ async function processOneBroadcast(admin: Admin, broadcast: Broadcast): Promise<
       .eq("id", target.id);
   }
 
-  // Atualiza contadores + agenda o próximo envio com delay aleatório (anti-ban).
-  const delaySec = randomInt(broadcast.delay_min_seconds, broadcast.delay_max_seconds);
-  const nextAt = new Date(Date.now() + delaySec * 1000).toISOString();
+  // Atualiza contadores + agenda o próximo envio.
+  // Anti-ban: delay aleatório entre cada mensagem; a cada `batch_size` enviadas,
+  // uma pausa maior de `pause_minutes` (0 = sem pausa por lote).
+  const newSentCount = broadcast.sent_count + (result.ok ? 1 : 0);
+  const hitBatchBoundary =
+    result.ok && broadcast.pause_minutes > 0 && newSentCount % broadcast.batch_size === 0;
+  const nextDelayMs = hitBatchBoundary
+    ? broadcast.pause_minutes * 60_000
+    : randomInt(broadcast.delay_min_seconds, broadcast.delay_max_seconds) * 1000;
+  const nextAt = new Date(Date.now() + nextDelayMs).toISOString();
   await admin
     .from("broadcasts")
     .update({
-      sent_count: broadcast.sent_count + (result.ok ? 1 : 0),
+      sent_count: newSentCount,
       failed_count: broadcast.failed_count + (result.ok ? 0 : 1),
       next_send_at: nextAt,
     })

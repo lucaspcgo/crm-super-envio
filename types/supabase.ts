@@ -578,6 +578,7 @@ export type Database = {
       }
       broadcasts: {
         Row: {
+          batch_size: number
           created_at: string
           created_by: string | null
           daily_limit_per_instance: number
@@ -593,6 +594,7 @@ export type Database = {
           name: string
           next_send_at: string | null
           organization_id: string
+          pause_minutes: number
           sent_count: number
           started_at: string | null
           status: string
@@ -600,6 +602,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          batch_size?: number
           created_at?: string
           created_by?: string | null
           daily_limit_per_instance?: number
@@ -615,6 +618,7 @@ export type Database = {
           name: string
           next_send_at?: string | null
           organization_id: string
+          pause_minutes?: number
           sent_count?: number
           started_at?: string | null
           status?: string
@@ -622,6 +626,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          batch_size?: number
           created_at?: string
           created_by?: string | null
           daily_limit_per_instance?: number
@@ -637,6 +642,7 @@ export type Database = {
           name?: string
           next_send_at?: string | null
           organization_id?: string
+          pause_minutes?: number
           sent_count?: number
           started_at?: string | null
           status?: string

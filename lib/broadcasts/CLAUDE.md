@@ -36,7 +36,9 @@ no projeto). O worker usa **service role** (bypassa RLS) porque roda fora de req
    `next_send_at <= now`, escolhe a instância (respeitando limite diário via
    `count` de sent hoje por `channel_id`), envia via `evolutionAdapter.sendMessage`
    **direto pro número** (não cria conversa na inbox), grava o resultado e agenda
-   o próximo com delay aleatório entre `delay_min/max`.
+   o próximo com delay aleatório entre `delay_min/max`. Anti-ban por lote: a cada
+   `batch_size` mensagens enviadas, a próxima é agendada só depois de `pause_minutes`
+   (0 = sem pausa por lote).
 3. Sem mais `queued` → `status='done'`. Todas as instâncias no limite → adia 1h.
 
 ## Fora de escopo (Fases 2-3)

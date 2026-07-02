@@ -17,6 +17,8 @@ export const createBroadcastSchema = z
     delayMin: z.number().int().min(1, "Mínimo 1 segundo").max(3600),
     delayMax: z.number().int().min(1).max(3600),
     dailyLimit: z.number().int().min(1).max(100000),
+    pauseMinutes: z.number().int().min(0).max(1440),
+    batchSize: z.number().int().min(1).max(100000),
   })
   .refine((v) => v.delayMax >= v.delayMin, {
     message: "O delay máximo precisa ser maior ou igual ao mínimo",
