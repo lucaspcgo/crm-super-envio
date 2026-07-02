@@ -9,6 +9,7 @@ import {
   signBroadcastMedia,
   withRandomEmoji,
 } from "./send";
+import { parseInteractive, sendReplyButtons } from "./send-interactive";
 
 type Admin = ReturnType<typeof createServiceClient>;
 
@@ -88,22 +89,42 @@ async function processOneBroadcast(admin: Admin, broadcast: Broadcast): Promise<
     return;
   }
 
-  // Monta o corpo (interpola variáveis + emoji aleatório opcional).
-  let body = interpolateBody(broadcast.message_body, { name: target.name, phone: target.phone });
-  if (broadcast.random_emoji_suffix) body = withRandomEmoji(body);
+  // Interpola variáveis ({{nome}}, {{primeiro_nome}}) por destinatário.
+  const interp = (s: string) => interpolateBody(s, { name: target.name, phone: target.phone });
 
-  // Envia. Se for mídia, gera uma signed URL curta agora (na hora do envio).
-  let result: Awaited<ReturnType<typeof sendViaChannel>>;
-  if (broadcast.message_type === "media" && broadcast.media_path && broadcast.media_mime) {
-    const url = await signBroadcastMedia(admin, broadcast.media_path);
-    result = url
-      ? await sendViaChannel(channel.config, target.phone, body, {
-          url,
-          mimeType: broadcast.media_mime,
-        })
-      : { ok: false, error: "Falha ao preparar a mídia do disparo." };
+  let result: { ok: true; externalId: string } | { ok: false; error: string };
+
+  if (broadcast.message_type === "interactive") {
+    // Mensagem interativa (POC: reply/botões).
+    const cfg = parseInteractive(broadcast.interactive);
+    if (!cfg) {
+      result = { ok: false, error: "Configuração interativa inválida." };
+    } else {
+      let interpBody = interp(cfg.body);
+      if (broadcast.random_emoji_suffix) interpBody = withRandomEmoji(interpBody);
+      result = await sendReplyButtons(channel.config, target.phone, {
+        ...cfg,
+        title: interp(cfg.title),
+        body: interpBody,
+        footer: interp(cfg.footer),
+      });
+    }
   } else {
-    result = await sendViaChannel(channel.config, target.phone, body);
+    // Texto ou mídia. Monta o corpo (variáveis + emoji opcional).
+    let body = interp(broadcast.message_body);
+    if (broadcast.random_emoji_suffix) body = withRandomEmoji(body);
+
+    if (broadcast.message_type === "media" && broadcast.media_path && broadcast.media_mime) {
+      const url = await signBroadcastMedia(admin, broadcast.media_path);
+      result = url
+        ? await sendViaChannel(channel.config, target.phone, body, {
+            url,
+            mimeType: broadcast.media_mime,
+          })
+        : { ok: false, error: "Falha ao preparar a mídia do disparo." };
+    } else {
+      result = await sendViaChannel(channel.config, target.phone, body);
+    }
   }
 
   if (result.ok) {

@@ -8,12 +8,20 @@ export const createBroadcastSchema = z
   .object({
     orgSlug: z.string(),
     name: z.string().min(2, "Dê um nome pro disparo").max(120, "Nome muito longo"),
-    messageType: z.enum(["text", "media"]),
+    messageType: z.enum(["text", "media", "interactive"]),
     // Texto da mensagem OU legenda da mídia (opcional em mídia).
     messageBody: z.string().max(4096, "Mensagem muito longa"),
     mediaType: z.enum(["image", "video", "audio", "document"]).nullable(),
     mediaPath: z.string().nullable(),
     mediaMime: z.string().nullable(),
+    // Interativa (POC: só reply/botões).
+    interactiveType: z.enum(["reply"]).nullable(),
+    interactiveTitle: z.string().max(200),
+    interactiveBody: z.string().max(1024),
+    interactiveFooter: z.string().max(200),
+    interactiveButtons: z
+      .array(z.object({ label: z.string().max(60), id: z.string().max(60) }))
+      .max(3),
     randomEmojiSuffix: z.boolean(),
     contactMode: z.enum(["all", "tag", "manual"]),
     tagIds: z.array(z.string().uuid()),
@@ -34,6 +42,14 @@ export const createBroadcastSchema = z
     message: "Escolha um arquivo de mídia",
     path: ["mediaPath"],
   })
+  .refine((v) => v.messageType !== "interactive" || v.interactiveBody.trim().length > 0, {
+    message: "Escreva o texto da mensagem",
+    path: ["interactiveBody"],
+  })
+  .refine(
+    (v) => v.messageType !== "interactive" || v.interactiveButtons.some((b) => b.label.trim()),
+    { message: "Adicione ao menos um botão com texto", path: ["interactiveButtons"] },
+  )
   .refine((v) => v.delayMax >= v.delayMin, {
     message: "O delay máximo precisa ser maior ou igual ao mínimo",
     path: ["delayMax"],

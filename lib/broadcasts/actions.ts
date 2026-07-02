@@ -132,6 +132,24 @@ export async function createBroadcastAction(
     };
   }
 
+  // Monta a config interativa (POC: reply/botões) quando for o caso.
+  const interactive =
+    parsed.data.messageType === "interactive"
+      ? {
+          type: "reply",
+          title: parsed.data.interactiveTitle,
+          body: parsed.data.interactiveBody,
+          footer: parsed.data.interactiveFooter,
+          buttons: parsed.data.interactiveButtons
+            .filter((b) => b.label.trim())
+            .slice(0, 3)
+            .map((b, i) => ({
+              label: b.label.trim(),
+              id: (b.id.trim() || `opt_${i + 1}`).slice(0, 60),
+            })),
+        }
+      : null;
+
   // Cria o disparo (já em andamento) e enfileira os destinatários.
   const nowIso = new Date().toISOString();
   const { data: broadcast, error: bErr } = await supabase
@@ -145,6 +163,7 @@ export async function createBroadcastAction(
       media_type: parsed.data.messageType === "media" ? parsed.data.mediaType : null,
       media_path: parsed.data.messageType === "media" ? parsed.data.mediaPath : null,
       media_mime: parsed.data.messageType === "media" ? parsed.data.mediaMime : null,
+      interactive,
       instance_mode: parsed.data.instanceMode,
       instance_channel_ids: connectedIds,
       delay_min_seconds: parsed.data.delayMin,

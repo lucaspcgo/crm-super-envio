@@ -7,12 +7,14 @@ import {
   FileTextIcon,
   ImageIcon,
   MicIcon,
+  PlusIcon,
   ShuffleIcon,
   SparklesIcon,
   TypeIcon,
   UploadIcon,
   UsersIcon,
   VideoIcon,
+  XIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useRef, useState, useTransition } from "react";
@@ -87,6 +89,11 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
       mediaType: null,
       mediaPath: null,
       mediaMime: null,
+      interactiveType: null,
+      interactiveTitle: "",
+      interactiveBody: "",
+      interactiveFooter: "",
+      interactiveButtons: [{ label: "", id: "" }],
       randomEmojiSuffix: false,
       contactMode: "manual",
       tagIds: [],
@@ -105,6 +112,7 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
 
   const messageType = form.watch("messageType");
   const mediaType = form.watch("mediaType");
+  const interactiveButtons = form.watch("interactiveButtons");
   const contactMode = form.watch("contactMode");
   const tagIds = form.watch("tagIds");
   const instanceMode = form.watch("instanceMode");
@@ -120,7 +128,7 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
     setMediaFilename(null);
   }
 
-  function setMessageType(t: "text" | "media") {
+  function setMessageType(t: "text" | "media" | "interactive") {
     form.setValue("messageType", t, { shouldValidate: true });
     if (t === "media") {
       if (!form.getValues("mediaType")) form.setValue("mediaType", "image");
@@ -128,6 +136,32 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
       form.setValue("mediaType", null);
       clearMedia();
     }
+    if (t === "interactive") {
+      form.setValue("interactiveType", "reply");
+      if (form.getValues("interactiveButtons").length === 0) {
+        form.setValue("interactiveButtons", [{ label: "", id: "" }]);
+      }
+    }
+  }
+
+  function updateButton(index: number, field: "label" | "id", value: string) {
+    const next = form
+      .getValues("interactiveButtons")
+      .map((b, i) => (i === index ? { ...b, [field]: value } : b));
+    form.setValue("interactiveButtons", next, { shouldValidate: true });
+  }
+
+  function addButton() {
+    const cur = form.getValues("interactiveButtons");
+    if (cur.length >= 3) return;
+    form.setValue("interactiveButtons", [...cur, { label: "", id: "" }], { shouldValidate: true });
+  }
+
+  function removeButton(index: number) {
+    const next = form.getValues("interactiveButtons").filter((_, i) => i !== index);
+    form.setValue("interactiveButtons", next.length ? next : [{ label: "", id: "" }], {
+      shouldValidate: true,
+    });
   }
 
   function setMediaType(mt: "image" | "video" | "audio" | "document") {
@@ -248,13 +282,19 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                   <ImageIcon className="h-4 w-4" />
                   Mídia
                 </button>
-                <div
-                  title="Em breve"
-                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50"
+                <button
+                  type="button"
+                  onClick={() => setMessageType("interactive")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 font-medium text-sm transition-colors",
+                    messageType === "interactive"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground",
+                  )}
                 >
                   <SparklesIcon className="h-4 w-4" />
                   Interativa
-                </div>
+                </button>
               </div>
             </div>
 
@@ -309,29 +349,147 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
               </>
             )}
 
-            <div className="space-y-1.5">
-              <label htmlFor="messageBody" className="font-medium text-sm">
-                {messageType === "media" ? "Legenda da mensagem" : "Texto da mensagem"}
-              </label>
-              <Textarea
-                id="messageBody"
-                rows={5}
-                placeholder={
-                  messageType === "media"
-                    ? "Digite a legenda (opcional para imagens/vídeos/documentos)..."
-                    : "Oi {{primeiro_nome}}, tudo bem? ..."
-                }
-                {...form.register("messageBody")}
-              />
-              <p className="text-muted-foreground text-xs">
-                Variáveis: <code className="font-mono">{"{{nome}}"}</code>,{" "}
-                <code className="font-mono">{"{{primeiro_nome}}"}</code>. Personalizar evita
-                mensagens idênticas (reduz risco de ban).
-              </p>
-              {errors.messageBody && (
-                <p className="text-destructive text-xs">{errors.messageBody.message}</p>
-              )}
-            </div>
+            {messageType === "interactive" && (
+              <>
+                <div className="space-y-1.5">
+                  <span className="block font-medium text-sm">Tipo de interativa</span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-lg border border-primary bg-primary/10 px-3 py-1.5 font-medium text-primary text-sm">
+                      Reply (botões)
+                    </span>
+                    {["CTA", "PIX", "Lista", "Carrossel"].map((t) => (
+                      <span
+                        key={t}
+                        title="Em breve"
+                        className="cursor-not-allowed rounded-lg border border-border/60 bg-card/40 px-3 py-1.5 text-muted-foreground text-sm opacity-50"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs">
+                  <AlertTriangleIcon className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <p className="text-muted-foreground">
+                    Mensagens interativas dependem da <strong>Evolution API 2.4.0-rc2</strong> (ou
+                    superior) e o WhatsApp restringe botões na API não-oficial — pode não aparecer
+                    no celular do destinatário. Teste com o seu número primeiro.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="interactiveTitle" className="font-medium text-sm">
+                    Título
+                  </label>
+                  <Input
+                    id="interactiveTitle"
+                    placeholder="Ex: Resposta Rápida"
+                    {...form.register("interactiveTitle")}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="interactiveBody" className="font-medium text-sm">
+                    Texto
+                  </label>
+                  <Textarea
+                    id="interactiveBody"
+                    rows={3}
+                    placeholder="Escolha uma das opções abaixo:"
+                    {...form.register("interactiveBody")}
+                  />
+                  {errors.interactiveBody && (
+                    <p className="text-destructive text-xs">{errors.interactiveBody.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="interactiveFooter" className="font-medium text-sm">
+                    Rodapé
+                  </label>
+                  <Input
+                    id="interactiveFooter"
+                    placeholder="Ex: Manager Pro (opcional)"
+                    {...form.register("interactiveFooter")}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="block font-medium text-sm">Botões (máx 3)</span>
+                  {interactiveButtons.map((b, i) => (
+                    // biome-ignore lint/suspicious/noArrayIndexKey: linhas de botão são posicionais
+                    <div key={i} className="flex items-center gap-2">
+                      <Input
+                        value={b.label}
+                        onChange={(e) => updateButton(i, "label", e.target.value)}
+                        placeholder="✅ Confirmar"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={b.id}
+                        onChange={(e) => updateButton(i, "id", e.target.value)}
+                        placeholder="opt_confirmar"
+                        className="w-32"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeButton(i)}
+                        aria-label="Remover botão"
+                        className="text-muted-foreground transition-colors hover:text-destructive"
+                      >
+                        <XIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {interactiveButtons.length < 3 && (
+                    <button
+                      type="button"
+                      onClick={addButton}
+                      className="flex items-center gap-1.5 text-primary text-sm hover:underline"
+                    >
+                      <PlusIcon className="h-3.5 w-3.5" />
+                      Adicionar botão
+                    </button>
+                  )}
+                  {errors.interactiveButtons && (
+                    <p className="text-destructive text-xs">
+                      {errors.interactiveButtons.message ?? "Verifique os botões."}
+                    </p>
+                  )}
+                  <p className="text-muted-foreground text-xs">
+                    O <strong>id</strong> é o valor que volta quando a pessoa clica (deixe vazio pra
+                    gerar automático).
+                  </p>
+                </div>
+              </>
+            )}
+
+            {messageType !== "interactive" && (
+              <div className="space-y-1.5">
+                <label htmlFor="messageBody" className="font-medium text-sm">
+                  {messageType === "media" ? "Legenda da mensagem" : "Texto da mensagem"}
+                </label>
+                <Textarea
+                  id="messageBody"
+                  rows={5}
+                  placeholder={
+                    messageType === "media"
+                      ? "Digite a legenda (opcional para imagens/vídeos/documentos)..."
+                      : "Oi {{primeiro_nome}}, tudo bem? ..."
+                  }
+                  {...form.register("messageBody")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Variáveis: <code className="font-mono">{"{{nome}}"}</code>,{" "}
+                  <code className="font-mono">{"{{primeiro_nome}}"}</code>. Personalizar evita
+                  mensagens idênticas (reduz risco de ban).
+                </p>
+                {errors.messageBody && (
+                  <p className="text-destructive text-xs">{errors.messageBody.message}</p>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center justify-between rounded-lg border border-border/60 bg-card/40 px-3 py-2.5">
               <div className="flex items-start gap-2.5">

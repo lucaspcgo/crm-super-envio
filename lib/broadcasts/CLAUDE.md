@@ -5,6 +5,16 @@ Disparador em massa: envia uma mensagem de **texto** (com variáveis) ou **mídi
 tag, ou números avulsos — com rotação de instâncias WhatsApp Evolution e anti-ban
 (delay + pausa por lote + limite diário + sufixo de emoji). Roda em background.
 
+## Interativa (POC: reply/botões)
+
+`message_type='interactive'` guarda a config em `interactive` (jsonb). Hoje só o
+tipo **reply**: `{ type:'reply', title, body, footer, buttons:[{label,id}] }`. O
+worker chama `sendReplyButtons` (`lib/broadcasts/send-interactive.ts`), que bate
+em `POST /message/sendButtons/{instância}` reusando `postJson`/`evolutionConfigSchema`
+do adapter. **Depende de Evolution 2.4.0-rc2+** e o WhatsApp restringe botões na
+API não-oficial — pode não renderizar. CTA/PIX/Lista/Carrossel ficam pra depois
+(o jsonb `interactive` comporta esses formatos no futuro).
+
 ## Mídia
 
 `message_type='media'` guarda `media_type`, `media_path` (caminho no bucket

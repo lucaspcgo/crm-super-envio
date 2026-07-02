@@ -589,6 +589,7 @@ export type Database = {
           id: string
           instance_channel_ids: string[]
           instance_mode: string
+          interactive: Json | null
           media_mime: string | null
           media_path: string | null
           media_type: string | null
@@ -617,6 +618,7 @@ export type Database = {
           id?: string
           instance_channel_ids?: string[]
           instance_mode?: string
+          interactive?: Json | null
           media_mime?: string | null
           media_path?: string | null
           media_type?: string | null
@@ -645,6 +647,7 @@ export type Database = {
           id?: string
           instance_channel_ids?: string[]
           instance_mode?: string
+          interactive?: Json | null
           media_mime?: string | null
           media_path?: string | null
           media_type?: string | null
