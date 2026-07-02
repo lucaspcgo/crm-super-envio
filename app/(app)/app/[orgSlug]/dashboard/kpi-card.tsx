@@ -1,8 +1,8 @@
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
-import type { Kpi } from "@/lib/mock/dashboard";
+import type { Kpi } from "@/lib/dashboard/queries";
 
 export function KpiCard({ kpi }: { kpi: Kpi }) {
-  const up = kpi.delta.direction === "up";
+  const up = kpi.delta?.direction !== "down";
   return (
     <div className="group relative overflow-hidden rounded-xl border border-border bg-card glow-hover surface-highlight">
       {/* Top accent line (visible on hover) */}
@@ -11,21 +11,23 @@ export function KpiCard({ kpi }: { kpi: Kpi }) {
       <div className="p-5">
         <div className="flex items-start justify-between">
           <span className="label-mono">{kpi.label}</span>
-          <div
-            className={`flex items-center gap-0.5 font-mono text-[10px] tracking-wide ${
-              up ? "text-primary" : "text-destructive"
-            }`}
-          >
-            {up ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
-            {kpi.delta.value}
-          </div>
+          {kpi.delta ? (
+            <div
+              className={`flex items-center gap-0.5 font-mono text-[10px] tracking-wide ${
+                up ? "text-primary" : "text-destructive"
+              }`}
+            >
+              {up ? <ArrowUpIcon className="h-3 w-3" /> : <ArrowDownIcon className="h-3 w-3" />}
+              {kpi.delta.value}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 font-semibold text-3xl tracking-tight tabular-nums">{kpi.value}</div>
       </div>
 
       {/* Sparkline */}
-      <Sparkline values={kpi.spark} up={up} />
+      {kpi.spark && kpi.spark.length > 1 ? <Sparkline values={kpi.spark} up={up} /> : null}
     </div>
   );
 }
