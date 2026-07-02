@@ -95,14 +95,29 @@ export async function pickChannelForBroadcast(
   return null;
 }
 
+/** Gera uma signed URL curta pra mídia (o Evolution baixa na hora do envio). */
+export async function signBroadcastMedia(admin: Admin, path: string): Promise<string | null> {
+  const { data, error } = await admin.storage.from("broadcast-media").createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) {
+    logError("broadcasts.signMedia", error);
+    return null;
+  }
+  return data.signedUrl;
+}
+
 /** Envia via adapter Evolution. Não grava DB — quem grava é o worker. */
 export async function sendViaChannel(
   channelConfig: Json,
   to: string,
   body: string,
+  media?: { url: string; mimeType: string },
 ): Promise<{ ok: true; externalId: string } | { ok: false; error: string }> {
   try {
-    const res = await evolutionAdapter.sendMessage(channelConfig, { to, body });
+    const res = await evolutionAdapter.sendMessage(channelConfig, {
+      to,
+      body,
+      ...(media ? { media: [media] } : {}),
+    });
     return { ok: true, externalId: res.externalId };
   } catch (err) {
     logError("broadcasts.sendViaChannel", err);

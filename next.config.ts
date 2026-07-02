@@ -79,6 +79,9 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: [APP_HOST, ...DEV_ALLOWED_HOSTS],
+      // Uploads de mídia do disparador (imagem/vídeo/doc) passam por Server
+      // Action em base64; o padrão de 1MB é pequeno demais.
+      bodySizeLimit: "30mb",
     },
   },
   async headers() {

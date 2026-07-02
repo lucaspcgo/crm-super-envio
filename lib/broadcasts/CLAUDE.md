@@ -1,8 +1,18 @@
 # CLAUDE.md — lib/broadcasts
 
-Disparador em massa (Fase 1): envia uma mensagem de **texto** com variáveis pra
-vários contatos da agenda, com rotação de instâncias WhatsApp Evolution e
-anti-ban (delay + limite diário por instância). Roda em background.
+Disparador em massa: envia uma mensagem de **texto** (com variáveis) ou **mídia**
+(imagem/vídeo/áudio/documento com legenda) pra vários contatos — da agenda, por
+tag, ou números avulsos — com rotação de instâncias WhatsApp Evolution e anti-ban
+(delay + pausa por lote + limite diário + sufixo de emoji). Roda em background.
+
+## Mídia
+
+`message_type='media'` guarda `media_type`, `media_path` (caminho no bucket
+privado `broadcast-media`) e `media_mime`. O upload é via `uploadBroadcastMediaAction`
+(base64 → service role → storage). O worker gera uma **signed URL curta a cada
+envio** (`signBroadcastMedia`, TTL 5min) — não guarda URL fixa porque o disparo
+pode levar horas. `message_body` vira a legenda. Depende de `bodySizeLimit` maior
+em `next.config.ts` (uploads passam por Server Action).
 
 ## Arquivos
 

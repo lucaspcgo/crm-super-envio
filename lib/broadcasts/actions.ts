@@ -1,15 +1,60 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireOrgRole } from "@/lib/auth/guards";
 import { logError } from "@/lib/logger";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { Database } from "@/types/supabase";
 import { resolveTargetContacts } from "./queries";
-import { type CreateBroadcastInput, createBroadcastSchema } from "./schemas";
+import {
+  type CreateBroadcastInput,
+  createBroadcastSchema,
+  type UploadBroadcastMediaInput,
+  uploadBroadcastMediaSchema,
+} from "./schemas";
 import { normalizePhone } from "./send";
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
+
+const MEDIA_BUCKET = "broadcast-media";
+
+/**
+ * Sobe o arquivo de mídia pro storage (bucket privado) e devolve o caminho.
+ * O envio real gera uma signed URL curta a cada disparo (o worker), então aqui
+ * só guardamos o `path`. Usa service role — a action já é protegida por role.
+ */
+export async function uploadBroadcastMediaAction(
+  input: UploadBroadcastMediaInput,
+): Promise<{ ok: true; data: { path: string } } | { ok: false; error: string }> {
+  const parsed = uploadBroadcastMediaSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Dados inválidos" };
+
+  const { org } = await requireOrgRole({ orgSlug: parsed.data.orgSlug, roles: ["owner", "admin"] });
+
+  const buf = Buffer.from(parsed.data.fileBase64, "base64");
+  if (buf.length === 0) return { ok: false, error: "Arquivo vazio." };
+  if (buf.length > 25 * 1024 * 1024)
+    return { ok: false, error: "Arquivo muito grande (máx 25MB)." };
+
+  const ext = (parsed.data.filename.split(".").pop() ?? "bin")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 8);
+  const path = `${org.id}/${randomUUID()}.${ext || "bin"}`;
+
+  const admin = createServiceClient();
+  const { error } = await admin.storage
+    .from(MEDIA_BUCKET)
+    .upload(path, buf, { contentType: parsed.data.mimeType, upsert: false });
+  if (error) {
+    logError("broadcasts.uploadMedia", error);
+    return { ok: false, error: "Não foi possível enviar o arquivo. Tente novamente." };
+  }
+
+  return { ok: true, data: { path } };
+}
 
 export async function createBroadcastAction(
   input: CreateBroadcastInput,
@@ -42,6 +87,11 @@ export async function createBroadcastAction(
   const connectedIds = evolution.filter((c) => c.status === "connected").map((c) => c.id);
   if (connectedIds.length === 0) {
     return { ok: false, error: "Nenhuma instância escolhida está conectada." };
+  }
+
+  // Mídia: o arquivo precisa pertencer a esta org (path começa com o org.id).
+  if (parsed.data.messageType === "media" && !parsed.data.mediaPath?.startsWith(`${org.id}/`)) {
+    return { ok: false, error: "Arquivo de mídia inválido. Envie o arquivo de novo." };
   }
 
   // Monta os destinatários (dedupe por número já normalizado).
@@ -90,8 +140,11 @@ export async function createBroadcastAction(
       organization_id: org.id,
       created_by: user.id,
       name: parsed.data.name,
-      message_type: "text",
+      message_type: parsed.data.messageType,
       message_body: parsed.data.messageBody,
+      media_type: parsed.data.messageType === "media" ? parsed.data.mediaType : null,
+      media_path: parsed.data.messageType === "media" ? parsed.data.mediaPath : null,
+      media_mime: parsed.data.messageType === "media" ? parsed.data.mediaMime : null,
       instance_mode: parsed.data.instanceMode,
       instance_channel_ids: connectedIds,
       delay_min_seconds: parsed.data.delayMin,

@@ -4,15 +4,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertTriangleIcon,
   CheckIcon,
+  FileTextIcon,
   ImageIcon,
+  MicIcon,
   ShuffleIcon,
   SparklesIcon,
   TypeIcon,
   UploadIcon,
   UsersIcon,
+  VideoIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { TextField } from "@/components/forms/form-field";
@@ -24,6 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createBroadcastAction } from "@/lib/broadcasts/actions";
 import { type CreateBroadcastInput, createBroadcastSchema } from "@/lib/broadcasts/schemas";
 import { cn } from "@/lib/utils";
+import { BroadcastMediaUploader } from "./broadcast-media-uploader";
 
 type NamedItem = { id: string; name: string };
 
@@ -62,6 +66,13 @@ function Pill({
   );
 }
 
+const MEDIA_TYPES = [
+  { value: "image", label: "Imagem", icon: ImageIcon },
+  { value: "video", label: "Vídeo", icon: VideoIcon },
+  { value: "audio", label: "Áudio", icon: MicIcon },
+  { value: "document", label: "Documento", icon: FileTextIcon },
+] as const;
+
 export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -71,7 +82,11 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
     defaultValues: {
       orgSlug,
       name: "",
+      messageType: "text",
       messageBody: "",
+      mediaType: null,
+      mediaPath: null,
+      mediaMime: null,
       randomEmojiSuffix: false,
       contactMode: "manual",
       tagIds: [],
@@ -86,6 +101,10 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
     },
   });
 
+  const [mediaFilename, setMediaFilename] = useState<string | null>(null);
+
+  const messageType = form.watch("messageType");
+  const mediaType = form.watch("mediaType");
   const contactMode = form.watch("contactMode");
   const tagIds = form.watch("tagIds");
   const instanceMode = form.watch("instanceMode");
@@ -94,6 +113,27 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
   const errors = form.formState.errors;
 
   const isAgenda = contactMode === "all" || contactMode === "tag";
+
+  function clearMedia() {
+    form.setValue("mediaPath", null, { shouldValidate: true });
+    form.setValue("mediaMime", null);
+    setMediaFilename(null);
+  }
+
+  function setMessageType(t: "text" | "media") {
+    form.setValue("messageType", t, { shouldValidate: true });
+    if (t === "media") {
+      if (!form.getValues("mediaType")) form.setValue("mediaType", "image");
+    } else {
+      form.setValue("mediaType", null);
+      clearMedia();
+    }
+  }
+
+  function setMediaType(mt: "image" | "video" | "audio" | "document") {
+    form.setValue("mediaType", mt, { shouldValidate: true });
+    clearMedia(); // arquivo antigo não vale mais pro novo tipo
+  }
 
   function toggleTag(id: string) {
     const next = tagIds.includes(id) ? tagIds.filter((t) => t !== id) : [...tagIds, id];
@@ -142,20 +182,40 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
             <div className="space-y-1.5">
               <span className="block font-medium text-sm">Tipo de mensagem</span>
               <div className="grid grid-cols-3 gap-2">
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary/10 px-3 py-2.5 font-medium text-primary text-sm">
+                <button
+                  type="button"
+                  onClick={() => setMessageType("text")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 font-medium text-sm transition-colors",
+                    messageType === "text"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground",
+                  )}
+                >
                   <TypeIcon className="h-4 w-4" />
                   Texto
-                </div>
-                <div className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessageType("media")}
+                  className={cn(
+                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 font-medium text-sm transition-colors",
+                    messageType === "media"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground",
+                  )}
+                >
                   <ImageIcon className="h-4 w-4" />
                   Mídia
-                </div>
-                <div className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50">
+                </button>
+                <div
+                  title="Em breve"
+                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50"
+                >
                   <SparklesIcon className="h-4 w-4" />
                   Interativa
                 </div>
               </div>
-              <p className="text-muted-foreground text-xs">Mídia e Interativa em breve.</p>
             </div>
 
             <TextField
@@ -165,14 +225,62 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
               inputProps={{ placeholder: "Ex: Promoção de julho" }}
             />
 
+            {messageType === "media" && (
+              <>
+                <div className="space-y-1.5">
+                  <span className="block font-medium text-sm">Tipo de mídia</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {MEDIA_TYPES.map((m) => (
+                      <button
+                        key={m.value}
+                        type="button"
+                        onClick={() => setMediaType(m.value)}
+                        className={cn(
+                          "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 font-medium text-sm transition-colors",
+                          mediaType === m.value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <m.icon className="h-4 w-4" />
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="block font-medium text-sm">Arquivo de mídia</span>
+                  <BroadcastMediaUploader
+                    orgSlug={orgSlug}
+                    mediaType={mediaType ?? "image"}
+                    filename={mediaFilename}
+                    onUploaded={({ path, mime, filename }) => {
+                      form.setValue("mediaPath", path, { shouldValidate: true });
+                      form.setValue("mediaMime", mime);
+                      setMediaFilename(filename);
+                    }}
+                    onClear={clearMedia}
+                  />
+                  {errors.mediaPath && (
+                    <p className="text-destructive text-xs">{errors.mediaPath.message}</p>
+                  )}
+                </div>
+              </>
+            )}
+
             <div className="space-y-1.5">
               <label htmlFor="messageBody" className="font-medium text-sm">
-                Texto da mensagem
+                {messageType === "media" ? "Legenda da mensagem" : "Texto da mensagem"}
               </label>
               <Textarea
                 id="messageBody"
                 rows={5}
-                placeholder="Oi {{primeiro_nome}}, tudo bem? ..."
+                placeholder={
+                  messageType === "media"
+                    ? "Digite a legenda (opcional para imagens/vídeos/documentos)..."
+                    : "Oi {{primeiro_nome}}, tudo bem? ..."
+                }
                 {...form.register("messageBody")}
               />
               <p className="text-muted-foreground text-xs">
