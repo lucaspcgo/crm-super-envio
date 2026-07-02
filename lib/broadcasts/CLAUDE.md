@@ -29,7 +29,8 @@ no projeto). O worker usa **service role** (bypassa RLS) porque roda fora de req
 
 ## Como o envio funciona
 
-1. `createBroadcastAction` resolve os contatos (todos ou por tag), normaliza/dedupe
+1. `createBroadcastAction` resolve os destinatários — **todos** os contatos, **por
+   tag**, ou **números avulsos** (colados à mão, `contact_id=null`) — normaliza/dedupe
    telefones, cria o `broadcast` (`status='running'`, `next_send_at=now`) + os targets.
 2. O worker (`lib/jobs/index.ts`, a cada 3s) pega disparos `running` com
    `next_send_at <= now`, escolhe a instância (respeitando limite diário via

@@ -44,25 +44,42 @@ export async function createBroadcastAction(
     return { ok: false, error: "Nenhuma instância escolhida está conectada." };
   }
 
-  // Resolve contatos e normaliza telefones (dedupe por número).
-  let contacts: Awaited<ReturnType<typeof resolveTargetContacts>>;
-  try {
-    contacts = await resolveTargetContacts(org.id, parsed.data.contactMode, parsed.data.tagIds);
-  } catch (err) {
-    logError("broadcasts.create.resolve", err);
-    return { ok: false, error: "Erro ao buscar os contatos. Tente novamente." };
+  // Monta os destinatários (dedupe por número já normalizado).
+  const seen = new Set<string>();
+  const targets: { contact_id: string | null; phone: string; name: string | null }[] = [];
+
+  if (parsed.data.contactMode === "manual") {
+    // Números colados à mão (um por linha / separados por vírgula/espaço).
+    for (const raw of parsed.data.manualNumbers.split(/[\s,;]+/)) {
+      const phone = normalizePhone(raw);
+      if (phone.length < 8 || seen.has(phone)) continue;
+      seen.add(phone);
+      targets.push({ contact_id: null, phone, name: null });
+    }
+  } else {
+    let contacts: Awaited<ReturnType<typeof resolveTargetContacts>>;
+    try {
+      contacts = await resolveTargetContacts(org.id, parsed.data.contactMode, parsed.data.tagIds);
+    } catch (err) {
+      logError("broadcasts.create.resolve", err);
+      return { ok: false, error: "Erro ao buscar os contatos. Tente novamente." };
+    }
+    for (const c of contacts) {
+      const phone = normalizePhone(c.phone);
+      if (phone.length < 8 || seen.has(phone)) continue;
+      seen.add(phone);
+      targets.push({ contact_id: c.id, phone, name: c.name });
+    }
   }
 
-  const seen = new Set<string>();
-  const targets: { contact_id: string; phone: string; name: string }[] = [];
-  for (const c of contacts) {
-    const phone = normalizePhone(c.phone);
-    if (phone.length < 8 || seen.has(phone)) continue;
-    seen.add(phone);
-    targets.push({ contact_id: c.id, phone, name: c.name });
-  }
   if (targets.length === 0) {
-    return { ok: false, error: "Nenhum contato com telefone válido pra esse filtro." };
+    return {
+      ok: false,
+      error:
+        parsed.data.contactMode === "manual"
+          ? "Nenhum número válido na lista."
+          : "Nenhum contato com telefone válido pra esse filtro.",
+    };
   }
 
   // Cria o disparo (já em andamento) e enfileira os destinatários.
@@ -139,7 +156,13 @@ async function transition(
 }
 
 export async function pauseBroadcastAction(orgSlug: string, id: string): Promise<Result> {
-  return transition(orgSlug, id, ["running"], { status: "paused" }, "O disparo não está em andamento.");
+  return transition(
+    orgSlug,
+    id,
+    ["running"],
+    { status: "paused" },
+    "O disparo não está em andamento.",
+  );
 }
 
 export async function resumeBroadcastAction(orgSlug: string, id: string): Promise<Result> {

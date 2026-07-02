@@ -14,7 +14,10 @@ export function normalizePhone(raw: string): string {
 }
 
 /** Interpola {{nome}}, {{primeiro_nome}}, {{telefone}} no corpo da mensagem. */
-export function interpolateBody(body: string, target: { name: string | null; phone: string }): string {
+export function interpolateBody(
+  body: string,
+  target: { name: string | null; phone: string },
+): string {
   const name = target.name ?? "";
   const ctx = {
     nome: name,
@@ -48,10 +51,8 @@ export async function pickChannelForBroadcast(
 
   const ordered: string[] =
     broadcast.instance_mode === "rotate"
-      ? // biome-ignore lint/style/noNonNullAssertion: índice sempre dentro do range
-        Array.from({ length: n }, (_, i) => ids[(broadcast.sent_count + i) % n]!)
-      : // biome-ignore lint/style/noNonNullAssertion: n >= 1 garantido acima
-        [ids[0]!];
+      ? Array.from({ length: n }, (_, i) => ids[(broadcast.sent_count + i) % n]!)
+      : [ids[0]!];
 
   const todayStart = startOfTodayUtcIso();
 

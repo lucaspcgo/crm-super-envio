@@ -89,7 +89,12 @@ async function processOneBroadcast(admin: Admin, broadcast: Broadcast): Promise<
   if (result.ok) {
     await admin
       .from("broadcast_targets")
-      .update({ status: "sent", external_id: result.externalId, sent_at: new Date().toISOString(), error: null })
+      .update({
+        status: "sent",
+        external_id: result.externalId,
+        sent_at: new Date().toISOString(),
+        error: null,
+      })
       .eq("id", target.id);
   } else {
     await admin

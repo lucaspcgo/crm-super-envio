@@ -64,6 +64,7 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
       messageBody: "",
       contactMode: "all",
       tagIds: [],
+      manualNumbers: "",
       instanceMode: "specific",
       channelIds: [],
       delayMin: 8,
@@ -167,7 +168,7 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
             <CardTitle className="label-mono text-[10px]">/ contatos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-5">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Pill
                 active={contactMode === "all"}
                 onClick={() => form.setValue("contactMode", "all", { shouldValidate: true })}
@@ -180,47 +181,79 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
               >
                 Por tag
               </Pill>
+              <Pill
+                active={contactMode === "manual"}
+                onClick={() => form.setValue("contactMode", "manual", { shouldValidate: true })}
+              >
+                Números avulsos
+              </Pill>
             </div>
 
-            {contactMode === "all" ? (
+            {contactMode === "all" && (
               <p className="text-muted-foreground text-sm">
                 Vai enviar pra todos os contatos que têm telefone cadastrado.
               </p>
-            ) : tags.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Você ainda não tem tags. Crie tags nos contatos pra segmentar.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((t) => {
-                  const selected = tagIds.includes(t.id);
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => toggleTag(t.id)}
-                      className={cn(
-                        "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                        selected ? "border-primary bg-primary/10" : "border-border/60 bg-card/40",
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "grid size-4 place-items-center rounded-[4px] border",
-                          selected
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-input",
-                        )}
-                      >
-                        {selected && <CheckIcon className="size-3" />}
-                      </span>
-                      {t.name}
-                    </button>
-                  );
-                })}
+            )}
+
+            {contactMode === "tag" &&
+              (tags.length === 0 ? (
+                <p className="text-muted-foreground text-sm">
+                  Você ainda não tem tags. Crie tags nos contatos pra segmentar.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((t) => {
+                      const selected = tagIds.includes(t.id);
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => toggleTag(t.id)}
+                          className={cn(
+                            "flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors",
+                            selected
+                              ? "border-primary bg-primary/10"
+                              : "border-border/60 bg-card/40",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "grid size-4 place-items-center rounded-[4px] border",
+                              selected
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-input",
+                            )}
+                          >
+                            {selected && <CheckIcon className="size-3" />}
+                          </span>
+                          {t.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {errors.tagIds && (
+                    <p className="text-destructive text-xs">{errors.tagIds.message}</p>
+                  )}
+                </>
+              ))}
+
+            {contactMode === "manual" && (
+              <div className="space-y-1.5">
+                <Textarea
+                  rows={4}
+                  placeholder={"Um número por linha:\n5562999999999\n5511988887777"}
+                  {...form.register("manualNumbers")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Um número por linha (ou separados por vírgula). Use DDI + DDD, ex:{" "}
+                  <code className="font-mono">5562999999999</code>.
+                </p>
+                {errors.manualNumbers && (
+                  <p className="text-destructive text-xs">{errors.manualNumbers.message}</p>
+                )}
               </div>
             )}
-            {errors.tagIds && <p className="text-destructive text-xs">{errors.tagIds.message}</p>}
           </CardContent>
         </Card>
 
