@@ -282,19 +282,16 @@ export function NewBroadcastForm({ orgSlug, channels, tags }: Props) {
                   <ImageIcon className="h-4 w-4" />
                   Mídia
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setMessageType("interactive")}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 font-medium text-sm transition-colors",
-                    messageType === "interactive"
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground",
-                  )}
+                {/* Interativa desabilitada: exige Evolution 2.4.0-rc2+ (a instância
+                    da org roda 2.3.7). O código de envio/UI existe e é reativado
+                    trocando este bloco pelo <button onClick={() => setMessageType("interactive")}>. */}
+                <div
+                  title="Precisa Evolution 2.4.0-rc2+"
+                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2.5 text-muted-foreground text-sm opacity-50"
                 >
                   <SparklesIcon className="h-4 w-4" />
                   Interativa
-                </button>
+                </div>
               </div>
             </div>
 
