@@ -7,6 +7,7 @@ import {
   LayersIcon,
   ListTodoIcon,
   type LucideIcon,
+  SendIcon,
   SparklesIcon,
   TagIcon,
   UserCogIcon,
@@ -18,12 +19,7 @@ import {
 /** Grupos da sidebar, na ordem em que aparecem. */
 export type NavGroup = "dia-a-dia" | "crm" | "automacao" | "configuracoes";
 
-export const navGroupOrder: NavGroup[] = [
-  "dia-a-dia",
-  "crm",
-  "automacao",
-  "configuracoes",
-];
+export const navGroupOrder: NavGroup[] = ["dia-a-dia", "crm", "automacao", "configuracoes"];
 
 export const navGroupLabels: Record<NavGroup, string> = {
   "dia-a-dia": "dia a dia",
@@ -66,6 +62,13 @@ export const navItems: NavItem[] = [
     path: "/automacoes",
     label: "Automações",
     icon: ZapIcon,
+    group: "automacao",
+    roles: ["owner", "admin"],
+  },
+  {
+    path: "/disparador",
+    label: "Disparador",
+    icon: SendIcon,
     group: "automacao",
     roles: ["owner", "admin"],
   },

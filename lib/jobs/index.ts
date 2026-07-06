@@ -3,6 +3,8 @@ import { recoverStaleDocuments } from "@/lib/agent/rag/ingest";
 import { AUTOMATION_LIMITS } from "@/lib/automations/limits";
 import { recoverStaleAutomationSteps } from "@/lib/automations/recovery";
 import { processNextRuns } from "@/lib/automations/worker";
+import { recoverStaleBroadcastTargets } from "@/lib/broadcasts/recovery";
+import { processNextBroadcastSends } from "@/lib/broadcasts/worker";
 import { recoverStaleMessages } from "@/lib/messaging/recovery";
 
 const intervals: NodeJS.Timeout[] = [];
@@ -15,6 +17,8 @@ let jobsStarted = false;
 // uma execução demora mais que o intervalo do setInterval.
 let automationWorkerRunning = false;
 let automationRecoveryRunning = false;
+let broadcastWorkerRunning = false;
+let broadcastRecoveryRunning = false;
 
 /**
  * Inicia jobs de background (recovery crons + worker de automações).
@@ -92,8 +96,38 @@ export function startBackgroundJobs(): void {
     }, AUTOMATION_LIMITS.RECOVERY_INTERVAL_MS),
   );
 
+  // Disparador em massa — worker: envia 1 destinatário por tick respeitando delay
+  intervals.push(
+    setInterval(async () => {
+      if (broadcastWorkerRunning) return;
+      broadcastWorkerRunning = true;
+      try {
+        await processNextBroadcastSends();
+      } catch (err) {
+        console.error("[jobs/broadcasts]", err);
+      } finally {
+        broadcastWorkerRunning = false;
+      }
+    }, 3_000),
+  );
+
+  // Disparador em massa — recovery: targets presos em 'sending' > 5min → 'queued'
+  intervals.push(
+    setInterval(async () => {
+      if (broadcastRecoveryRunning) return;
+      broadcastRecoveryRunning = true;
+      try {
+        await recoverStaleBroadcastTargets();
+      } catch (err) {
+        console.error("[jobs/broadcasts-recovery]", err);
+      } finally {
+        broadcastRecoveryRunning = false;
+      }
+    }, 30_000),
+  );
+
   console.log(
-    "[jobs] started 5 background intervals (3 recoveries + automations worker + recovery)",
+    "[jobs] started 7 background intervals (3 recoveries + automations worker/recovery + broadcasts worker/recovery)",
   );
 
   // Sub-H H-3: SIGTERM com guard de duplicate registration (em vez de gating por NODE_ENV)
